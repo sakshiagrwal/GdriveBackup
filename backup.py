@@ -1,4 +1,3 @@
-import glob
 import json
 import os
 import os.path
@@ -43,12 +42,8 @@ try:
     else:
         folder_id = response["files"][0]["id"]
 
-    desktop_path = "C:\\Users\\Sakshi\\Desktop"
-
-    folder_list = glob.glob(desktop_path + '\\*')
-
-    for folder in folder_list:
-        if os.path.isdir(folder):
+    try:
+        for root, dirs, files in os.walk("C:\\Users\\Sakshi\\Desktop"):
             now = datetime.now()
             date_time = now.strftime("%d-%m-%Y %H:%M:%S")
             file_metadata = {
@@ -59,40 +54,20 @@ try:
             file = service.files().create(body=file_metadata, fields="id").execute()
             subfolder_id = file.get("id")
 
-            folder_metadata = {
-                "name": os.path.basename(folder),
-                "mimeType": "application/vnd.google-apps.folder",
-                "parents": [subfolder_id]
-            }
-            folder_file = service.files().create(body=folder_metadata, fields="id").execute()
-            folder_id = folder_file.get("id")
-
-            file_list = glob.glob(folder + '\\*')
-            for file in file_list:
+            for file in files:
                 if file.endswith((".ini", ".lnk")):
                     continue
                 file_metadata = {
-                    "name": os.path.basename(file),
-                    "parents": [folder_id]
+                    "name": file,
+                    "parents": [subfolder_id]
                 }
-                media = MediaFileUpload(file)
+                media = MediaFileUpload(os.path.join(root, file))
                 upload_file = service.files().create(body=file_metadata,
                                                      media_body=media,
                                                      fields="id").execute()
                 print(f"Backed up file: {file}")
-        else:
-            if folder.endswith((".ini", ".lnk")):
-                continue
-            file_metadata = {
-                "name": os.path.basename(folder),
-                "parents": [subfolder_id]
-            }
-            media = MediaFileUpload(folder)
-            upload_file = service.files().create(body=file_metadata,
-                                                 media_body=media,
-                                                 fields="id").execute()
-            print(f"Backed up file: {folder}")
-
+    except FileNotFoundError:
+        print("The specified user was not found on the system.")
 except HttpError as e:
     print(f"Error: {e}")
 finally:
