@@ -57,42 +57,40 @@ else:
     folder_id = response["files"][0]["id"]
 
 # Iterate over all files and directories in the user's desktop
-try:
-    for root, dirs, files in os.walk(desktop_path):
-        # Get the current time
-        now = datetime.now()
-        date_time = now.strftime("%d-%m-%Y %H:%M:%S")
+for root, dirs, files in os.walk(desktop_path):
+    # Get the current time
+    now = datetime.now()
+    date_time = now.strftime("%d-%m-%Y %H:%M:%S")
 
-        # Create a subfolder with the current date and time
+    # Create a subfolder with the current date and time
+    file_metadata = {
+        "name": date_time,
+        "mimeType": "application/vnd.google-apps.folder",
+        "parents": [folder_id]
+    }
+    file = service.files().create(body=file_metadata, fields="id").execute()
+    subfolder_id = file.get("id")
+
+    # Iterate over all files in the current directory
+    for file in files:
+        # Skip certain file types
+        if file.endswith((".ini", ".lnk")):
+            continue
+
+        # Create a file metadata object
         file_metadata = {
-            "name": date_time,
-            "mimeType": "application/vnd.google-apps.folder",
-            "parents": [folder_id]
+            "name": file,
+            "parents": [subfolder_id]
         }
-        file = service.files().create(body=file_metadata, fields="id").execute()
-        subfolder_id = file.get("id")
 
-        # Iterate over all files in the current directory
-        for file in files:
-            # Skip certain file types
-            if file.endswith((".ini", ".lnk")):
-                continue
+        # Create a MediaFileUpload object for the file
+        media = MediaFileUpload(os.path.join(root, file))
 
-            # Create a file metadata object
-            file_metadata = {
-                "name": file,
-                "parents": [subfolder_id]
-            }
-
-            # Create a MediaFileUpload object for the file
-            media = MediaFileUpload(os.path.join(root, file))
-
-            # Use the Drive API to upload the file
+        # Use the Drive API to upload the file
+        try:
             upload_file = service.files().create(body=file_metadata,
                                                  media_body=media,
                                                  fields="id").execute()
             print(f"Backed up file: {file}")
-except FileNotFoundError:
-    print("The specified user was not found on the system.")
-except HttpError as e:
-    print(f"Error: {e}")
+        except HttpError as e:
+            print(f"Error: {e}")
