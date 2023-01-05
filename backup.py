@@ -1,13 +1,11 @@
 import json
 import os
 import os.path
-from datetime import datetime
-
 import google.auth
-from google.auth.transport.requests import Request
+
+from datetime import datetime
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
@@ -40,7 +38,7 @@ else:
 # Iterate through the files and subdirectories on the user's desktop
 for root, dirs, files in os.walk(os.path.join(os.environ['userprofile'], 'Desktop')):
     now = datetime.now()
-    date_time = now.strftime("%d-%m-%Y %H:%M:%S")
+    date_time = now.strftime("%d %b %Y %I:%M%p")
     file_metadata = {
         "name": date_time,
         "mimeType": "application/vnd.google-apps.folder",
