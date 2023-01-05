@@ -42,18 +42,18 @@ try:
     else:
         folder_id = response["files"][0]["id"]
 
-    now = datetime.now()
-    date_time = now.strftime("%d-%m-%Y %H:%M:%S")
-    file_metadata = {
-        "name": date_time,
-        "mimeType": "application/vnd.google-apps.folder",
-        "parents": [folder_id]
-    }
-    file = service.files().create(body=file_metadata, fields="id").execute()
-    subfolder_id = file.get("id")
-
     try:
         for root, dirs, files in os.walk("C:\\Users\\Sakshi\\Desktop"):
+            now = datetime.now()
+            date_time = now.strftime("%d-%m-%Y %H:%M:%S")
+            file_metadata = {
+                "name": date_time,
+                "mimeType": "application/vnd.google-apps.folder",
+                "parents": [folder_id]
+            }
+            file = service.files().create(body=file_metadata, fields="id").execute()
+            subfolder_id = file.get("id")
+
             for file in files:
                 if file.endswith((".ini", ".lnk")):
                     continue
