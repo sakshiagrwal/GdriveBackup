@@ -11,7 +11,7 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
-
+desktop_path = os.path.join(os.environ['userprofile'], 'Desktop')
 creds = None
 
 try:
@@ -43,7 +43,7 @@ try:
         folder_id = response["files"][0]["id"]
 
     try:
-        for root, dirs, files in os.walk("C:\\Users\\Sakshi\\Desktop"):
+        for root, dirs, files in os.walk(desktop_path):
             now = datetime.now()
             date_time = now.strftime("%d-%m-%Y %H:%M:%S")
             file_metadata = {
