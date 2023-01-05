@@ -25,3 +25,30 @@ if os.path.exists("token.json"):
 
     with open("token.json", "w") as token:
         token.write(creds.to_json())
+
+try:
+    service = build("drive", "v3", credentials=creds)
+    response = service.files().list(
+        q="name='MasterBackup' and mimeType='application/vnd.google-apps.folder'", spaces="drive").execute()
+    if not response["files"]:
+        file_metadata = {
+            "name": "MasterBackup",
+            "mimeType": "application/vnd.google-apps.folder"
+        }
+
+        file = service.files().create(body=file_metadata, fields="id").execute()
+        folder_id = file.get("id")
+    else:
+        folder_id = response["file"][0]["id"]
+        for file in os.listdir("backupfiles"):
+            file_metadata = {
+                "name": file,
+                "parents": [folder_id]
+            }
+            media = MediaFileUpload(f"backupfiles/{file}")
+            upload_file = service.files().create(body=file_metadata,
+                                                 media_body=media,
+                                                 fields="id").execute()
+            print("Backed up files:" + file)
+except HttpError as e:
+    print("Error: " + str(e))
