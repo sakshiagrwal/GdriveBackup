@@ -52,19 +52,22 @@ try:
     file = service.files().create(body=file_metadata, fields="id").execute()
     subfolder_id = file.get("id")
 
-    for root, dirs, files in os.walk("C:\\Users\\Sakshi\\Desktop"):
-        for file in files:
-            if file.endswith((".ini", ".lnk")):
-                continue
-            file_metadata = {
-                "name": file,
-                "parents": [subfolder_id]
-            }
-            media = MediaFileUpload(os.path.join(root, file))
-            upload_file = service.files().create(body=file_metadata,
-                                                 media_body=media,
-                                                 fields="id").execute()
-            print(f"Backed up file: {file}")
+    try:
+        for root, dirs, files in os.walk("C:\\Users\\Sakshi\\Desktop"):
+            for file in files:
+                if file.endswith((".ini", ".lnk")):
+                    continue
+                file_metadata = {
+                    "name": file,
+                    "parents": [subfolder_id]
+                }
+                media = MediaFileUpload(os.path.join(root, file))
+                upload_file = service.files().create(body=file_metadata,
+                                                     media_body=media,
+                                                     fields="id").execute()
+                print(f"Backed up file: {file}")
+    except FileNotFoundError:
+        print("The specified user was not found on the system.")
 except HttpError as e:
     print(f"Error: {e}")
 finally:
