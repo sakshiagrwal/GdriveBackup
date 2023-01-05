@@ -43,6 +43,8 @@ try:
 
     for root, dirs, files in os.walk("C:\\Users\\Sakshi\\Desktop"):
         for file in files:
+            if file.endswith((".ini", ".lnk")):
+                continue
             file_metadata = {
                 "name": file,
                 "parents": [folder_id]
