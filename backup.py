@@ -35,17 +35,34 @@ if not response["files"]:
 else:
     folder_id = response["files"][0]["id"]
 
+# Create a folder for all of the files on the desktop
+now = datetime.now()
+date_time = now.strftime("%d %b %Y %I:%M%p")
+file_metadata = {
+    "name": date_time,
+    "mimeType": "application/vnd.google-apps.folder",
+    "parents": [folder_id]
+}
+file = service.files().create(body=file_metadata, fields="id").execute()
+subfolder_id = file.get("id")
+print(f"Created folder: {date_time}")
+
 # Iterate through the files and subdirectories on the user's desktop
 for root, dirs, files in os.walk(os.path.join(os.environ['userprofile'], 'Desktop')):
-    now = datetime.now()
-    date_time = now.strftime("%d %b %Y %I:%M%p")
-    file_metadata = {
-        "name": date_time,
-        "mimeType": "application/vnd.google-apps.folder",
-        "parents": [folder_id]
-    }
-    file = service.files().create(body=file_metadata, fields="id").execute()
-    subfolder_id = file.get("id")
+    # Get the relative path of the current subdirectory
+    rel_path = os.path.relpath(root, os.path.join(
+        os.environ['userprofile'], 'Desktop'))
+
+    # Create a subfolder for the current subdirectory, if necessary
+    if rel_path != '.':
+        subfolder_metadata = {
+            "name": rel_path,
+            "mimeType": "application/vnd.google-apps.folder",
+            "parents": [subfolder_id]
+        }
+        subfolder = service.files().create(body=subfolder_metadata, fields="id").execute()
+        subfolder_id = subfolder.get("id")
+        print(f"Created folder: {rel_path}")
 
     # Iterate through the files in the subdirectory
     for file in files:
