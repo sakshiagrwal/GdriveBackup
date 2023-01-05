@@ -1,6 +1,7 @@
 import json
 import os
 import os.path
+from datetime import datetime
 
 import google.auth
 from google.auth.transport.requests import Request
@@ -41,13 +42,23 @@ try:
     else:
         folder_id = response["files"][0]["id"]
 
+    now = datetime.now()
+    date_time = now.strftime("%d-%m-%Y %H:%M:%S")
+    file_metadata = {
+        "name": date_time,
+        "mimeType": "application/vnd.google-apps.folder",
+        "parents": [folder_id]
+    }
+    file = service.files().create(body=file_metadata, fields="id").execute()
+    subfolder_id = file.get("id")
+
     for root, dirs, files in os.walk("C:\\Users\\Sakshi\\Desktop"):
         for file in files:
             if file.endswith((".ini", ".lnk")):
                 continue
             file_metadata = {
                 "name": file,
-                "parents": [folder_id]
+                "parents": [subfolder_id]
             }
             media = MediaFileUpload(os.path.join(root, file))
             upload_file = service.files().create(body=file_metadata,
