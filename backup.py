@@ -12,16 +12,14 @@ SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 creds = None
 
-if os.path.exists("token.json"):
-    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                "credentials.json", SCOPES)
-            creds = flow.run_local_server(port=0)
+try:
+    with open("token.json", "r") as token:
+        creds = Credentials.from_authorized_user_info(
+            info=token.read(), scopes=SCOPES)
+except FileNotFoundError:
+    flow = InstalledAppFlow.from_client_secrets_file(
+        "credentials.json", SCOPES)
+    creds = flow.run_local_server(port=0)
 
     with open("token.json", "w") as token:
         token.write(creds.to_json())
@@ -39,16 +37,19 @@ try:
         file = service.files().create(body=file_metadata, fields="id").execute()
         folder_id = file.get("id")
     else:
-        folder_id = response["file"][0]["id"]
-        for file in os.listdir("backupfiles"):
+        folder_id = response["files"][0]["id"]
+        for file in os.listdir(os.path.join("backupfiles")):
             file_metadata = {
                 "name": file,
                 "parents": [folder_id]
             }
-            media = MediaFileUpload(f"backupfiles/{file}")
+            media = MediaFileUpload(f"{os.path.join('backupfiles', file)}")
             upload_file = service.files().create(body=file_metadata,
                                                  media_body=media,
                                                  fields="id").execute()
-            print("Backed up files:" + file)
+            print(f"Backed up file: {file}")
 except HttpError as e:
-    print("Error: " + str(e))
+    print(f"Error: {e}")
+finally:
+    with open("token.json", "r") as token:
+        token.close()
