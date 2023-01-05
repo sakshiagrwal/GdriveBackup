@@ -67,43 +67,45 @@ for root, dirs, files in os.walk(desktop_path):
     if rel_path == ".":
         # Use the "Desktop Backup" folder as the parent folder
         parent_folder_id = folder_id
+else:
+    # Check if a subfolder for the current directory has already been created in Google Drive
+    if rel_path in path_id_map:
+        # Use the existing subfolder as the parent folder
+        parent_folder_id = path_id_map[rel_path]
     else:
-        # Check if a subfolder for the current directory has already been created in Google Drive
-        if rel_path in path_id_map:
-            # Use the existing subfolder as the parent folder
-            parent_folder_id = path_id_map[rel_path]
-        else:
-            # Create a subfolder for the current directory
-            file_metadata = {
-                "name": os.path.basename(rel_path),
-                "mimeType": "application/vnd.google-apps.folder",
-                "parents": [folder_id]
-            }
-            file = service.files().create(body=file_metadata, fields="id").execute()
-            parent_folder_id = file.get("id")
-            # Store the mapping of the local path to the Google Drive folder ID
-            path_id_map[rel_path] = parent_folder_id
-
-    # Iterate over all files in the current directory
-    for file in files:
-        # Skip certain file types
-        if file.endswith((".ini", ".lnk")):
-            continue
-
-        # Create a file metadata object
+        # Create a subfolder for the current directory
         file_metadata = {
-            "name": file,
-            "parents": [parent_folder_id]
+            "name": os.path.basename(rel_path),
+            "mimeType": "application/vnd.google-apps.folder",
+            "parents": [folder_id]
         }
+        file = service.files().create(body=file_metadata, fields="id").execute()
+        parent_folder_id = file.get("id")
+        # Store the mapping of the local path to the Google Drive folder ID
+        path_id_map[rel_path] = parent_folder_id
 
-        # Create a MediaFileUpload object for the file
-        media = MediaFileUpload(os.path.join(root, file))
+# Iterate over all files in the current directory
+for file in files:
+    # Skip certain file types
+    if file.endswith((".ini", ".lnk")):
+        continue
 
-        # Use the Drive API to upload the file
-        try:
-            upload_file = service.files().create(body=file_metadata,
-                                                 media_body=media,
-                                                 fields="id").execute()
-            print(f"Backed up file: {file}")
-        except HttpError as e:
-            print(f"Error: {e}")
+    # Create a file metadata object
+    file_metadata = {
+        "name": file,
+        "parents": [parent_folder_id]
+    }
+
+    # Check if a file with the same name already exists in the current folder in Google Drive
+    response = service.files().list(
+        q=f"name='{file}' and mimeType='application/octet-stream' and parents in '{parent_folder_id}'", spaces="drive").execute()
+    if response["files"]:
+        # Delete the existing file
+        file_id = response["files"][0]["id"]
+        service.files().delete(fileId=file_id).execute()
+
+    # Upload the new file to Google Drive
+    media = MediaFileUpload(os.path.join(root, file),
+                            mimetype="application/octet-stream", resumable=True)
+    service.files().create(body=file_metadata, media_body=media,
+                           fields="id").execute()
