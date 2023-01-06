@@ -19,66 +19,47 @@ with open("token.json", "r") as token:
 # Authenticate with the Google Drive API
 service = build("drive", "v3", credentials=creds)
 
-# Search for the "Desktop Backup" folder
-response = service.files().list(
-    q="name='Desktop Backup' and mimeType='application/vnd.google-apps.folder'", spaces="drive").execute()
-
-# If the folder doesn't exist, create it
-if not response["files"]:
-    file_metadata = {
-        "name": "Desktop Backup",
-        "mimeType": "application/vnd.google-apps.folder"
-    }
-
-    file = service.files().create(body=file_metadata, fields="id").execute()
-    folder_id = file.get("id")
-else:
-    folder_id = response["files"][0]["id"]
-
-# Create a folder for all of the files on the desktop
+# Create a folder for all of the files
 now = datetime.now()
 date_time = now.strftime("%d %b %Y %I:%M%p")
-file_metadata = {
+folder_metadata = {
     "name": date_time,
-    "mimeType": "application/vnd.google-apps.folder",
-    "parents": [folder_id]
+    "mimeType": "application/vnd.google-apps.folder"
 }
-file = service.files().create(body=file_metadata, fields="id").execute()
-subfolder_id = file.get("id")
+folder = service.files().create(body=folder_metadata, fields="id").execute()
+folder_id = folder.get("id")
 print(f"Created folder: {date_time}")
 
-# Iterate through the files and subdirectories on the user's desktop
-for root, dirs, files in os.walk(os.path.join(os.environ['userprofile'], 'Desktop')):
-    # Get the relative path of the current subdirectory
-    rel_path = os.path.relpath(root, os.path.join(
-        os.environ['userprofile'], 'Desktop'))
 
-    # Create a subfolder for the current subdirectory, if necessary
-    if rel_path != '.':
-        subfolder_metadata = {
-            "name": rel_path,
-            "mimeType": "application/vnd.google-apps.folder",
-            "parents": [subfolder_id]
-        }
-        subfolder = service.files().create(body=subfolder_metadata, fields="id").execute()
-        subfolder_id = subfolder.get("id")
-        print(f"Created folder: {rel_path}")
+def upload_to_folder(service, dir_path, parent_id):
+    # Iterate through the files and subdirectories in the current directory
+    for item in os.listdir(dir_path):
+        item_path = os.path.join(dir_path, item)
+        if os.path.isfile(item_path):
+            # Upload the file
+            file_metadata = {
+                "name": item,
+                "parents": [parent_id]
+            }
+            media = MediaFileUpload(item_path)
+            upload_file = service.files().create(body=file_metadata,
+                                                 media_body=media,
+                                                 fields="id").execute()
+            print(f"Uploaded file: {item}")
+        else:
+            # Create a subfolder for the subdirectory
+            subfolder_metadata = {
+                "name": item,
+                "mimeType": "application/vnd.google-apps.folder",
+                "parents": [parent_id]
+            }
+            subfolder = service.files().create(body=subfolder_metadata, fields="id").execute()
+            subfolder_id = subfolder.get("id")
+            print(f"Created folder: {item}")
 
-    # Iterate through the files in the subdirectory
-    for file in files:
-        if file.endswith((".ini", ".lnk")):
-            continue
+            # Recursively upload the files in the subdirectory
+            upload_to_folder(service, item_path, subfolder_id)
 
-        file_path = os.path.join(root, file)
-        if os.path.getsize(file_path) > 5000000:
-            continue
 
-        file_metadata = {
-            "name": file,
-            "parents": [subfolder_id]
-        }
-        media = MediaFileUpload(file_path)
-        upload_file = service.files().create(body=file_metadata,
-                                             media_body=media,
-                                             fields="id").execute()
-        print(f"Backed up: {file}")
+# Recursively upload the files to the folder
+upload_to_folder(service, ".", folder_id)
