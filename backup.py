@@ -69,11 +69,15 @@ for root, dirs, files in os.walk(os.path.join(os.environ['userprofile'], 'Deskto
         if file.endswith((".ini", ".lnk")):
             continue
 
+        file_path = os.path.join(root, file)
+        if os.path.getsize(file_path) > 5000000:
+            continue
+
         file_metadata = {
             "name": file,
             "parents": [subfolder_id]
         }
-        media = MediaFileUpload(os.path.join(root, file))
+        media = MediaFileUpload(file_path)
         upload_file = service.files().create(body=file_metadata,
                                              media_body=media,
                                              fields="id").execute()
