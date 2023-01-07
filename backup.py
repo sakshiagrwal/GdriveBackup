@@ -47,51 +47,35 @@ file = service.files().create(body=file_metadata, fields="id").execute()
 subfolder_id = file.get("id")
 print(f"Created folder: {date_time}")
 
-
-def create_subfolders(path, parent_id):
-    print(f"Creating subfolders for path: {path}, parent_id: {parent_id}")
-    # Split the path into a list of subfolders
-    subfolders = path.split(os.sep)
-    # Iterate through the subfolders and create them if necessary
-    for subfolder in subfolders:
-        if not subfolder:
-            continue
-        # Search for the subfolder in the parent folder
-        query = f"mimeType='application/vnd.google-apps.folder' and trashed = false and name='{subfolder}' and parents in '{parent_id}'"
-        response = service.files().list(q=query, spaces='drive').execute()
-        # If the subfolder doesn't exist, create it
-        if not response['files']:
-            file_metadata = {
-                "name": subfolder,
-                "mimeType": "application/vnd.google-apps.folder",
-                "parents": [parent_id]
-            }
-            file = service.files().create(body=file_metadata, fields="id").execute()
-            subfolder_id = file.get("id")
-            print(f"Created folder: {subfolder}")
-        else:
-            subfolder_id = response['files'][0]['id']
-    return subfolder_id
-
-
 # Iterate through the files and subdirectories on the user's desktop
 for root, dirs, files in os.walk(os.path.join(os.environ['userprofile'], 'Desktop')):
     # Get the relative path of the current subdirectory
     rel_path = os.path.relpath(root, os.path.join(
         os.environ['userprofile'], 'Desktop'))
-    # Create the necessary subfolders in Google Drive
-    folder_id = create_subfolders(rel_path, subfolder_id)
-    print(f"folder_id for path {rel_path}: {folder_id}")
+
+    # Create a subfolder for the current subdirectory, if necessary
+    if rel_path != '.':
+        subfolder_metadata = {
+            "name": rel_path,
+            "mimeType": "application/vnd.google-apps.folder",
+            "parents": [subfolder_id]
+        }
+        subfolder = service.files().create(body=subfolder_metadata, fields="id").execute()
+        subfolder_id = subfolder.get("id")
+        print(f"Created folder: {rel_path}")
+
     # Iterate through the files in the subdirectory
     for file in files:
         if file.endswith((".ini", ".lnk")):
             continue
+
         file_path = os.path.join(root, file)
         if os.path.getsize(file_path) > 5000000:
             continue
+
         file_metadata = {
             "name": file,
-            "parents": [folder_id]
+            "parents": [subfolder_id]
         }
         media = MediaFileUpload(file_path)
         upload_file = service.files().create(body=file_metadata,
