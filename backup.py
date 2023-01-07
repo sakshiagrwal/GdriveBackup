@@ -19,47 +19,81 @@ with open("token.json", "r") as token:
 # Authenticate with the Google Drive API
 service = build("drive", "v3", credentials=creds)
 
-# Create a folder for all of the files
+# Search for the "Desktop Backup" folder
+response = service.files().list(
+    q="name='Desktop Backup' and mimeType='application/vnd.google-apps.folder'", spaces="drive").execute()
+
+# If the folder doesn't exist, create it
+if not response["files"]:
+    file_metadata = {
+        "name": "Desktop Backup",
+        "mimeType": "application/vnd.google-apps.folder"
+    }
+
+    file = service.files().create(body=file_metadata, fields="id").execute()
+    folder_id = file.get("id")
+else:
+    folder_id = response["files"][0]["id"]
+
+# Create a folder for all of the files on the desktop
 now = datetime.now()
 date_time = now.strftime("%d %b %Y %I:%M%p")
-folder_metadata = {
+file_metadata = {
     "name": date_time,
-    "mimeType": "application/vnd.google-apps.folder"
+    "mimeType": "application/vnd.google-apps.folder",
+    "parents": [folder_id]
 }
-folder = service.files().create(body=folder_metadata, fields="id").execute()
-folder_id = folder.get("id")
+file = service.files().create(body=file_metadata, fields="id").execute()
+subfolder_id = file.get("id")
 print(f"Created folder: {date_time}")
 
 
-def upload_to_folder(service, dir_path, parent_id):
-    # Iterate through the files and subdirectories in the current directory
-    for item in os.listdir(dir_path):
-        item_path = os.path.join(dir_path, item)
-        if os.path.isfile(item_path):
-            # Upload the file
+def create_subfolders(path, parent_id):
+    # Split the path into a list of subfolders
+    subfolders = path.split(os.sep)
+
+    # Iterate through the subfolders and create them if necessary
+    for subfolder in subfolders:
+        if not subfolder:
+            continue
+        # Search for the subfolder in the parent folder
+        query = f"mimeType='application/vnd.google-apps.folder' and trashed = false and name='{subfolder}' and parents in '{parent_id}'"
+        response = service.files().list(q=query, spaces='drive').execute()
+        # If the subfolder doesn't exist, create it
+        if not response['files']:
             file_metadata = {
-                "name": item,
-                "parents": [parent_id]
-            }
-            media = MediaFileUpload(item_path)
-            upload_file = service.files().create(body=file_metadata,
-                                                 media_body=media,
-                                                 fields="id").execute()
-            print(f"Uploaded file: {item}")
-        else:
-            # Create a subfolder for the subdirectory
-            subfolder_metadata = {
-                "name": item,
+                "name": subfolder,
                 "mimeType": "application/vnd.google-apps.folder",
                 "parents": [parent_id]
             }
-            subfolder = service.files().create(body=subfolder_metadata, fields="id").execute()
-            subfolder_id = subfolder.get("id")
-            print(f"Created folder: {item}")
+            file = service.files().create(body=file_metadata, fields="id").execute()
+            subfolder_id = file.get("id")
+            print(f"Created folder: {subfolder}")
+        else:
+            subfolder_id = response['files'][0]['id']
+    return subfolder_id
 
-            # Recursively upload the files in the subdirectory
-            upload_to_folder(service, item_path, subfolder_id)
 
-
-# Recursively upload the files to the folder
-upload_to_folder(service, ".", folder_id)
+# Iterate through the files and subdirectories on the user's desktop
+for root, dirs, files in os.walk(os.path.join(os.environ['userprofile'], 'Desktop')):
+    # Get the relative path of the current subdirectory
+    rel_path = os.path.relpath(root, os.path.join(
+        os.environ['userprofile'], 'Desktop'))
+    # Create the necessary subfolders in Google Drive
+    folder_id = create_subfolders(rel_path, subfolder_id)
+    # Iterate through the files in the subdirectory
+    for file in files:
+        if file.endswith((".ini", ".lnk")):
+            continue
+        file_path = os.path.join(root, file)
+        if os.path.getsize(file_path) > 5000000:
+            continue
+        file_metadata = {
+            "name": file,
+            "parents": [folder_id]
+        }
+        media = MediaFileUpload(file_path)
+        upload_file = service.files().create(body=file_metadata,
+                                             media_body=media,
+                                             fields="id").execute()
+        print(f"Backed up: {file}")
