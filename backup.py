@@ -49,9 +49,9 @@ print(f"Created folder: {date_time}")
 
 
 def create_subfolders(path, parent_id):
+    print(f"Creating subfolders for path: {path}, parent_id: {parent_id}")
     # Split the path into a list of subfolders
     subfolders = path.split(os.sep)
-
     # Iterate through the subfolders and create them if necessary
     for subfolder in subfolders:
         if not subfolder:
@@ -81,6 +81,7 @@ for root, dirs, files in os.walk(os.path.join(os.environ['userprofile'], 'Deskto
         os.environ['userprofile'], 'Desktop'))
     # Create the necessary subfolders in Google Drive
     folder_id = create_subfolders(rel_path, subfolder_id)
+    print(f"folder_id for path {rel_path}: {folder_id}")
     # Iterate through the files in the subdirectory
     for file in files:
         if file.endswith((".ini", ".lnk")):
