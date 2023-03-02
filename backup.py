@@ -24,11 +24,11 @@ except IndexError:
         'name': destination_dir_name,
         'mimeType': 'application/vnd.google-apps.folder'
     }
-    response = service.files().create(body=file_metadata, fields='id').execute()
-    destination_dir_id = response.get('id')
+    file = service.files().create(body=file_metadata, fields='id').execute()
+    destination_dir_id = file.get('id')
 
 # Copy the source directory to the destination directory
-destination_dir_path = os.path.join('/', 'drive', 'root', destination_dir_id)
+destination_dir_path = f"drive:{destination_dir_name}"
 shutil.copytree(source_dir, destination_dir_path)
 
 print('Backup completed successfully.')
