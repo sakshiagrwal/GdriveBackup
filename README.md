@@ -1,9 +1,8 @@
 # Google Drive Backup
 
 ![](https://img.shields.io/badge/MadeWith-Python-green)
-[![](<https://img.shields.io/badge/BuiltFor-MLH(LHD)-yellow>)](https://www.mlh.io)
 
-Script to automate folder backups on google drive.
+A simple script to backup folder from a local directory to Google Drive.
 
 ### Learn about the entire process from start to end in this blog:
 
