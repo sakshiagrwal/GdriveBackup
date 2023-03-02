@@ -37,11 +37,18 @@ def authenticate_drive():
 
 def upload_file(gauth, file_path, file_name):
     drive = GoogleDrive(gauth)
-    file_metadata = {"title": file_name}
-    media = drive.CreateFile(file_metadata)
-    media.SetContentFile(file_path)
-    media.Upload()
-    logging.info(f"Uploaded {file_name} to Google Drive")
+    folder_name = "Vivobook"
+    query = f"title='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+    folder_list = drive.ListFile({'q': query}).GetList()
+    if folder_list:
+        folder_id = folder_list[0]['id']
+        file_metadata = {"title": file_name, "parents": [{"kind": "drive#fileLink", "id": folder_id}]}
+        media = drive.CreateFile(file_metadata)
+        media.SetContentFile(file_path)
+        media.Upload()
+        logging.info(f"Uploaded {file_name} to Google Drive folder: {folder_name}")
+    else:
+        logging.error(f"Folder not found: {folder_name}")
 
 
 def backup_and_upload():
