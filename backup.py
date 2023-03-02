@@ -1,12 +1,20 @@
 import os
+import json
 import shutil
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
+
+# Load the contents of the credentials.json file into a dictionary
+with open('credentials.json', 'r') as f:
+    cred_info = json.load(f)['installed']
 
 # Set up the Google Drive API client
-creds = Credentials.from_authorized_user_file('credentials.json')
+creds = Credentials.from_authorized_user_info(info=cred_info)
 service = build('drive', 'v3', credentials=creds)
+
+# Check if the necessary fields are present in the cred_info dictionary
+if not all(field in cred_info for field in ['client_id', 'client_secret', 'refresh_token']):
+    raise ValueError('The credentials file is missing one or more required fields.')
 
 # Set the source directory (the directory to be backed up)
 source_dir = os.path.join(os.path.expanduser('~'), 'Desktop', 'Raga')
