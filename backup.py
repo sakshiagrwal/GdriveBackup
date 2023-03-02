@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+import colorlog
 
 
 BACKUP_DIR = os.path.join(os.path.expandvars("%userprofile%"), "Desktop", "backup")
@@ -11,11 +12,27 @@ ARCHIVE_DIR = os.path.join(os.path.expandvars("%userprofile%"), "Desktop", "back
 CREDENTIALS_FILE = "credentials.json"
 FOLDER_NAME = "Vivobook"
 
+# Set up colorized logging
+handler = colorlog.StreamHandler()
+handler.setFormatter(colorlog.ColoredFormatter(
+    '%(log_color)s%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    log_colors={
+        'DEBUG': 'cyan',
+        'INFO': 'green',
+        'WARNING': 'yellow',
+        'ERROR': 'red',
+        'CRITICAL': 'red,bg_white',
+    }))
+logger = colorlog.getLogger()
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
+
 
 def create_zip(source_dir, dest_dir, file_name):
-    logging.info(f"Creating ZIP file from {source_dir} to {dest_dir} with name {file_name}")
+    logger.info(f"Creating ZIP file from {source_dir} to {dest_dir} with name {file_name}")
     if not os.path.exists(source_dir):
-        logging.error(f"Failed to create ZIP file: {source_dir} not found")
+        logger.error(f"Failed to create ZIP file: {source_dir} not found")
         return None
     try:
         os.makedirs(dest_dir, exist_ok=True)
@@ -23,15 +40,15 @@ def create_zip(source_dir, dest_dir, file_name):
         archive_path = os.path.join(dest_dir, file_name_without_ext)
         shutil.make_archive(archive_path, "zip", source_dir)
         zip_file_path = archive_path + ".zip"
-        logging.info(f"Created ZIP file: {zip_file_path}")
+        logger.info(f"Created ZIP file: {zip_file_path}")
         return zip_file_path
     except FileNotFoundError:
-        logging.error(f"Failed to create ZIP file: {source_dir} not found")
+        logger.error(f"Failed to create ZIP file: {source_dir} not found")
         return None
 
 
 def authenticate_drive():
-    logging.info("Authenticating Google Drive API...")
+    logger.info("Authenticating Google Drive API...")
     gauth = GoogleAuth()
     gauth.LoadCredentialsFile(CREDENTIALS_FILE)
     if gauth.credentials is None:
@@ -41,12 +58,12 @@ def authenticate_drive():
         gauth.Refresh()
     else:
         gauth.Authorize()
-    logging.info("Authenticated Google Drive API")
+    logger.info("Authenticated Google Drive API")
     return gauth
 
 
 def upload_file(gauth, file_path, file_name):
-    logging.info(f"Uploading file {file_name} to Google Drive...")
+    logger.info(f"Uploading file {file_name} to Google Drive...")
     drive = GoogleDrive(gauth)
     query = f"title='{FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
     folder_list = drive.ListFile({'q': query}).GetList()
@@ -57,13 +74,13 @@ def upload_file(gauth, file_path, file_name):
         folder = drive.CreateFile(folder_metadata)
         folder.Upload()
         folder_id = folder['id']
-        logging.info(f"Created folder: {FOLDER_NAME}")
+        logger.info(f"Created folder: {FOLDER_NAME}")
 
     file_metadata = {"title": file_name, "parents": [{"kind": "drive#fileLink", "id": folder_id}]}
     media = drive.CreateFile(file_metadata)
     media.SetContentFile(file_path)
     media.Upload()
-    logging.info(f"Uploaded {file_name} to Google Drive folder: {FOLDER_NAME}")
+    logger.info(f"Uploaded {file_name} to Google Drive folder: {FOLDER_NAME}")
 
 
 def backup_and_upload():
