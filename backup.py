@@ -1,3 +1,7 @@
+"""
+Google Drive Backup
+"""
+
 import os
 import shutil
 import logging
@@ -30,9 +34,20 @@ logger.setLevel(logging.INFO)
 
 
 def create_zip(source_dir, dest_dir, file_name):
-    logger.info(f"Creating ZIP file from {source_dir} to {dest_dir} with name {file_name}")
+    """
+    Creates a zip file containing the contents of the specified source directory.
+
+    Args:
+        source_dir (str): The path to the directory to zip.
+        dest_dir (str): The path to the directory where the zip file will be saved.
+        file_name (str): The name to give the zip file.
+
+    Returns:
+        None
+    """
+    logger.info("Creating ZIP file from %s to %s with name %s", source_dir, dest_dir, file_name)
     if not os.path.exists(source_dir):
-        logger.error(f"Failed to create ZIP file: {source_dir} not found")
+        logger.error("Failed to create ZIP file: %s not found", source_dir)
         return None
     try:
         os.makedirs(dest_dir, exist_ok=True)
@@ -40,14 +55,19 @@ def create_zip(source_dir, dest_dir, file_name):
         archive_path = os.path.join(dest_dir, file_name_without_ext)
         shutil.make_archive(archive_path, "zip", source_dir)
         zip_file_path = archive_path + ".zip"
-        logger.info(f"Created ZIP file: {zip_file_path}")
+        logger.info("Created ZIP file: %s", zip_file_path)
         return zip_file_path
     except FileNotFoundError:
-        logger.error(f"Failed to create ZIP file: {source_dir} not found")
+        logger.error("Failed to create ZIP file: %s not found", source_dir)
         return None
 
 
 def authenticate_drive():
+    """Authenticate the Google Drive API client with OAuth2 credentials.
+    
+    Returns:
+        An authenticated Google Drive API client.
+    """
     logger.info("Authenticating Google Drive API...")
     gauth = GoogleAuth()
     gauth.LoadCredentialsFile(CREDENTIALS_FILE)
@@ -63,7 +83,18 @@ def authenticate_drive():
 
 
 def upload_file(gauth, file_path, file_name):
-    logger.info(f"Uploading file {file_name} to Google Drive...")
+    """
+    Uploads a file to Google Drive.
+
+    Args:
+        gauth (GoogleAuth): An authorized GoogleAuth instance.
+        file_path (str): The local path to the file to upload.
+        file_name (str): The name to use for the uploaded file.
+
+    Returns:
+        None
+    """
+    logger.info("Uploading file %s to Google Drive...", file_name)
     drive = GoogleDrive(gauth)
     query = f"title='{FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
     folder_list = drive.ListFile({'q': query}).GetList()
@@ -74,16 +105,19 @@ def upload_file(gauth, file_path, file_name):
         folder = drive.CreateFile(folder_metadata)
         folder.Upload()
         folder_id = folder['id']
-        logger.info(f"Created folder: {FOLDER_NAME}")
+        logger.info("Created folder: %s", FOLDER_NAME)
 
     file_metadata = {"title": file_name, "parents": [{"kind": "drive#fileLink", "id": folder_id}]}
     media = drive.CreateFile(file_metadata)
     media.SetContentFile(file_path)
     media.Upload()
-    logger.info(f"Uploaded {file_name} to Google Drive folder: {FOLDER_NAME}")
+    logger.info("Uploaded %s to Google Drive folder: %s", file_name, FOLDER_NAME)
 
 
 def backup_and_upload():
+    """
+    Backup the specified file and upload it to Google Drive.
+    """
     now = datetime.now()
     file_name = f"backup_{now.strftime('%d-%m-%Y_%H-%M-%S')}.zip"
     archive_path = create_zip(BACKUP_DIR, ARCHIVE_DIR, file_name)
@@ -93,12 +127,12 @@ def backup_and_upload():
     try:
         gauth = authenticate_drive()
         upload_file(gauth, archive_path, file_name)
-    except Exception as e:
-        logging.error(f"Failed to upload {file_name} to Google Drive: {str(e)}")
+    except Exception as error:
+        logging.error("Failed to upload %s to Google Drive: %s", file_name, str(error))
         return
     finally:
         shutil.rmtree(ARCHIVE_DIR)
-        logging.info(f"Removed archive directory: {ARCHIVE_DIR}")
+        logging.info("Removed archive directory: %s", ARCHIVE_DIR)
 
 
 if __name__ == "__main__":
