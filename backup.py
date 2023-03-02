@@ -14,6 +14,9 @@ FOLDER_NAME = "Vivobook"
 
 def create_zip(source_dir, dest_dir, file_name):
     logging.info(f"Creating ZIP file from {source_dir} to {dest_dir} with name {file_name}")
+    if not os.path.exists(source_dir):
+        logging.error(f"Failed to create ZIP file: {source_dir} not found")
+        return None
     try:
         os.makedirs(dest_dir, exist_ok=True)
         file_name_without_ext = os.path.splitext(file_name)[0]
