@@ -32,13 +32,13 @@ def authenticate_drive():
         gauth.Refresh()
     else:
         gauth.Authorize()
+    return gauth
+
+
+def upload_file(gauth, file_path, file_name):
     drive = GoogleDrive(gauth)
-    return drive
-
-
-def upload_file(drive, file_path, file_name):
     file_metadata = {"title": file_name}
-    media = GoogleDrive.CreateFile(file_metadata)
+    media = drive.CreateFile(file_metadata)
     media.SetContentFile(file_path)
     media.Upload()
     logging.info(f"Uploaded {file_name} to Google Drive")
@@ -51,8 +51,8 @@ def backup_and_upload():
     if not archive_path:
         return
 
-    drive = authenticate_drive()
-    upload_file(drive, archive_path, file_name)
+    gauth = authenticate_drive()
+    upload_file(gauth, archive_path, file_name)
 
 
 if __name__ == "__main__":
