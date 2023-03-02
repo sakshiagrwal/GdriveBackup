@@ -1,14 +1,13 @@
 import os
 import shutil
 from datetime import datetime
-
-from pydrive.drive import GoogleDrive
 from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 
 
 def create_zip(path, file_name):
-    desktop_path = os.path.join(os.path.expandvars('%userprofile%'), 'Desktop')
-    backup_dir = os.path.join(desktop_path, 'backup_archive')
+    desktop_path = os.path.join(os.path.expandvars("%userprofile%"), "Desktop")
+    backup_dir = os.path.join(desktop_path, "backup_archive")
     os.makedirs(backup_dir, exist_ok=True)
     try:
         shutil.make_archive(os.path.join(backup_dir, file_name), "zip", path)
@@ -19,7 +18,14 @@ def create_zip(path, file_name):
 
 def google_auth():
     gauth = GoogleAuth()
-    gauth.LocalWebserverAuth()
+    gauth.LoadCredentialsFile("credentials.json")
+    if gauth.credentials is None:
+        gauth.LocalWebserverAuth()
+        gauth.SaveCredentialsFile("credentials.json")
+    elif gauth.access_token_expired:
+        gauth.Refresh()
+    else:
+        gauth.Authorize()
     drive = GoogleDrive(gauth)
     return gauth, drive
 
@@ -32,16 +38,22 @@ def upload_backup(drive, path, file_name):
 
 
 def controller():
-    path = os.path.join(os.path.expandvars('%userprofile%'), 'Desktop', 'backup')
+    path = os.path.join(os.path.expandvars("%userprofile%"), "Desktop", "backup")
     now = datetime.now()
-    file_name = "backup " + now.strftime(r"%d-%m-%Y %H:%M:%S").replace(":", "-").replace(" ", "_")
+    file_name = "backup " + now.strftime(r"%d-%m-%Y %H:%M:%S").replace(
+        ":", "-"
+    ).replace(" ", "_")
 
     if not create_zip(path, file_name):
         print("Failed to create ZIP file")
         return
 
     auth, drive = google_auth()
-    upload_backup(drive, os.path.join(os.environ['USERPROFILE'], 'Desktop', 'backup_archive'), file_name + ".zip")
+    upload_backup(
+        drive,
+        os.path.join(os.environ["USERPROFILE"], "Desktop", "backup_archive"),
+        file_name + ".zip",
+    )
     print("Backup uploaded successfully")
 
 
