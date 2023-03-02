@@ -14,22 +14,27 @@ from pydrive.drive import GoogleDrive
 
 
 BACKUP_DIR = os.path.join(os.path.expandvars("%userprofile%"), "Desktop", "backup")
-ARCHIVE_DIR = os.path.join(os.path.expandvars("%userprofile%"), "Desktop", "backup_archive")
+ARCHIVE_DIR = os.path.join(
+    os.path.expandvars("%userprofile%"), "Desktop", "backup_archive"
+)
 CREDENTIALS_FILE = "credentials.json"
 FOLDER_NAME = "Vivobook"
 
 # Set up colorized logging
 handler = colorlog.StreamHandler()
-handler.setFormatter(colorlog.ColoredFormatter(
-    '%(log_color)s%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    log_colors={
-        'DEBUG': 'cyan',
-        'INFO': 'green',
-        'WARNING': 'yellow',
-        'ERROR': 'red',
-        'CRITICAL': 'red,bg_white',
-    }))
+handler.setFormatter(
+    colorlog.ColoredFormatter(
+        "%(log_color)s%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        log_colors={
+            "DEBUG": "cyan",
+            "INFO": "green",
+            "WARNING": "yellow",
+            "ERROR": "red",
+            "CRITICAL": "red,bg_white",
+        },
+    )
+)
 logger = colorlog.getLogger()
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
@@ -47,7 +52,9 @@ def create_zip(source_dir, dest_dir, file_name):
     Returns:
         None
     """
-    logger.info("Creating ZIP file from %s to %s with name %s", source_dir, dest_dir, file_name)
+    logger.info(
+        "Creating ZIP file from %s to %s with name %s", source_dir, dest_dir, file_name
+    )
     if not os.path.exists(source_dir):
         logger.error("Failed to create ZIP file: %s not found", source_dir)
         return None
@@ -66,7 +73,7 @@ def create_zip(source_dir, dest_dir, file_name):
 
 def authenticate_drive():
     """Authenticate the Google Drive API client with OAuth2 credentials.
-    
+
     Returns:
         An authenticated Google Drive API client.
     """
@@ -99,17 +106,23 @@ def upload_file(gauth, file_path, file_name):
     logger.info("Uploading file %s to Google Drive...", file_name)
     drive = GoogleDrive(gauth)
     query = f"title='{FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
-    folder_list = drive.ListFile({'q': query}).GetList()
+    folder_list = drive.ListFile({"q": query}).GetList()
     if folder_list:
-        folder_id = folder_list[0]['id']
+        folder_id = folder_list[0]["id"]
     else:
-        folder_metadata = {"title": FOLDER_NAME, "mimeType": "application/vnd.google-apps.folder"}
+        folder_metadata = {
+            "title": FOLDER_NAME,
+            "mimeType": "application/vnd.google-apps.folder",
+        }
         folder = drive.CreateFile(folder_metadata)
         folder.Upload()
-        folder_id = folder['id']
+        folder_id = folder["id"]
         logger.info("Created folder: %s", FOLDER_NAME)
 
-    file_metadata = {"title": file_name, "parents": [{"kind": "drive#fileLink", "id": folder_id}]}
+    file_metadata = {
+        "title": file_name,
+        "parents": [{"kind": "drive#fileLink", "id": folder_id}],
+    }
     media = drive.CreateFile(file_metadata)
     media.SetContentFile(file_path)
     media.Upload()
@@ -141,5 +154,7 @@ def backup_and_upload():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
     backup_and_upload()
