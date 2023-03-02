@@ -6,9 +6,11 @@ import os
 import shutil
 import logging
 from datetime import datetime
+import colorlog
+import google.auth.exceptions
+import googleapiclient.errors
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-import colorlog
 
 
 BACKUP_DIR = os.path.join(os.path.expandvars("%userprofile%"), "Desktop", "backup")
@@ -127,7 +129,10 @@ def backup_and_upload():
     try:
         gauth = authenticate_drive()
         upload_file(gauth, archive_path, file_name)
-    except Exception as error:
+    except google.auth.exceptions.DefaultCredentialsError as error:
+        logging.error("Failed to authenticate with Google Drive: %s", str(error))
+        return
+    except googleapiclient.errors.HttpError as error:
         logging.error("Failed to upload %s to Google Drive: %s", file_name, str(error))
         return
     finally:
