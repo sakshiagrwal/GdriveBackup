@@ -42,13 +42,18 @@ def upload_file(gauth, file_path, file_name):
     folder_list = drive.ListFile({'q': query}).GetList()
     if folder_list:
         folder_id = folder_list[0]['id']
-        file_metadata = {"title": file_name, "parents": [{"kind": "drive#fileLink", "id": folder_id}]}
-        media = drive.CreateFile(file_metadata)
-        media.SetContentFile(file_path)
-        media.Upload()
-        logging.info(f"Uploaded {file_name} to Google Drive folder: {folder_name}")
     else:
-        logging.error(f"Folder not found: {folder_name}")
+        folder_metadata = {"title": folder_name, "mimeType": "application/vnd.google-apps.folder"}
+        folder = drive.CreateFile(folder_metadata)
+        folder.Upload()
+        folder_id = folder['id']
+        logging.info(f"Created folder: {folder_name}")
+
+    file_metadata = {"title": file_name, "parents": [{"kind": "drive#fileLink", "id": folder_id}]}
+    media = drive.CreateFile(file_metadata)
+    media.SetContentFile(file_path)
+    media.Upload()
+    logging.info(f"Uploaded {file_name} to Google Drive folder: {folder_name}")
 
 
 def backup_and_upload():
