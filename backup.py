@@ -1,74 +1,62 @@
-import json
 import os
-import os.path
+import shutil
 import google.auth
-
-from datetime import datetime
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
+# Set the path to your Windows desktop folder named "Deepak"
+DESKTOP_PATH = os.path.join(os.environ["USERPROFILE"], "Desktop", "Deepak")
 
-def upload_folder(service, local_path, parent_id):
-    # List the contents of the local directory
-    contents = os.listdir(local_path)
+# Set the ID of the folder in your Google Drive where you want to upload the files
+DRIVE_FOLDER_ID = "INSERT_YOUR_FOLDER_ID_HERE"
 
-    # Iterate through the contents of the local directory
-    for item in contents:
-        # Construct the local and Google Drive paths
-        local_item_path = os.path.join(local_path, item)
-        drive_item_path = os.path.join('/', item)
+# Set the name of the folder in your Google Drive where you want to upload the files
+DRIVE_FOLDER_NAME = "Deepak Backup"
 
-        # Check if the item is a file or a directory
-        if os.path.isfile(local_item_path):
-            # Upload the file to Google Drive
-            file_metadata = {
-                "name": item,
-                "parents": [parent_id]
-            }
-            media = MediaFileUpload(local_item_path)
-            service.files().create(body=file_metadata, media_body=media, fields="id").execute()
-            print(f"Backed up: {drive_item_path}")
-        elif os.path.isdir(local_item_path):
-            # Create a new folder on Google Drive
-            file_metadata = {
-                "name": item,
-                "mimeType": "application/vnd.google-apps.folder",
-                "parents": [parent_id]
-            }
-            folder = service.files().create(body=file_metadata, fields="id").execute()
-            folder_id = folder.get("id")
-            print(f"Created folder: {drive_item_path}")
-            # Recursively upload the contents of the directory
-            upload_folder(service, local_item_path, folder_id)
+# Set the credentials file path
+CREDENTIALS_FILE = "credentials.json"
 
+# Set the scopes needed for the Google Drive API
+SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
-# Read the credentials from the JSON file
-with open("token.json", "r") as cred_file:
-    info = json.loads(cred_file.read())
-    creds = google.oauth2.credentials.Credentials.from_authorized_user_info(
-        info=info)
+# Authenticate with the Google Drive API using the credentials file
+creds = None
+if os.path.exists(CREDENTIALS_FILE):
+    creds = Credentials.from_authorized_user_file(CREDENTIALS_FILE, SCOPES)
 
-# Authenticate with the Google Drive API
+if not creds or not creds.valid:
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+    else:
+        flow = google.auth.default(scopes=SCOPES)
+        creds = flow.run_local_server(port=0)
+    with open(CREDENTIALS_FILE, "w") as credentials_file:
+        credentials_file.write(creds.to_json())
+
+# Create a Google Drive API client
 service = build("drive", "v3", credentials=creds)
 
-# Search for the "Desktop Backup" folder
-response = service.files().list(
-    q="name='Desktop Backup' and mimeType='application/vnd.google-apps.folder'", spaces="drive").execute()
+# Create the folder in Google Drive if it doesn't exist
+try:
+    folder_metadata = {"name": DRIVE_FOLDER_NAME, "mimeType": "application/vnd.google-apps.folder"}
+    folder = service.files().create(body=folder_metadata, fields="id").execute()
+    DRIVE_FOLDER_ID = folder.get("id")
+except HttpError as error:
+    print(f"An error occurred: {error}")
+    DRIVE_FOLDER_ID = None
 
-# If the folder doesn't exist, create it
-if not response["files"]:
-    file_metadata = {
-        "name": "Desktop Backup",
-        "mimeType": "application/vnd.google-apps.folder"
-    }
-    file = service.files().create(body=file_metadata, fields="id").execute()
-    root_folder_id = file.get("id")
-else:
-    root_folder_id = response["files"][0]["id"]
-
-# Set the local path to the user's desktop
-local_path = os.path.join(os.environ['userprofile'], 'Desktop')
-
-# Upload the contents of the local directory to Google Drive
-upload_folder(service, local_path, root_folder_id)
+# Upload the files to Google Drive
+for root, dirs, files in os.walk(DESKTOP_PATH):
+    for file in files:
+        file_path = os.path.join(root, file)
+        relative_path = os.path.relpath(file_path, DESKTOP_PATH)
+        drive_path = os.path.join(DRIVE_FOLDER_ID, relative_path)
+        file_metadata = {"name": file, "parents": [DRIVE_FOLDER_ID]}
+        media = MediaFileUpload(file_path, resumable=True)
+        try:
+            file = service.files().create(body=file_metadata, media_body=media, fields="id").execute()
+            print(f"Uploaded {file_path} to {drive_path}")
+        except HttpError as error:
+            print(f"An error occurred: {error}")
