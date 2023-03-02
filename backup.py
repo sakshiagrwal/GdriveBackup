@@ -14,7 +14,8 @@ CREDENTIALS_FILE = "credentials.json"
 def create_zip(source_dir, dest_dir, file_name):
     try:
         os.makedirs(dest_dir, exist_ok=True)
-        archive_path = os.path.join(dest_dir, file_name)
+        file_name_without_ext = os.path.splitext(file_name)[0]
+        archive_path = os.path.join(dest_dir, file_name_without_ext)
         shutil.make_archive(archive_path, "zip", source_dir)
         return archive_path + ".zip"
     except FileNotFoundError:
