@@ -71,7 +71,7 @@ def backup_and_upload():
         logging.error(f"Failed to upload {file_name} to Google Drive: {str(e)}")
     finally:
         shutil.rmtree(ARCHIVE_DIR)
-        print(f"Removed archive directory: {ARCHIVE_DIR}")
+        logging.info(f"Removed archive directory: {ARCHIVE_DIR}")
 
 
 if __name__ == "__main__":
