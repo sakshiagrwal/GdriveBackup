@@ -9,6 +9,7 @@ from pydrive.drive import GoogleDrive
 BACKUP_DIR = os.path.join(os.path.expandvars("%userprofile%"), "Desktop", "backup")
 ARCHIVE_DIR = os.path.join(os.path.expandvars("%userprofile%"), "Desktop", "backup_archive")
 CREDENTIALS_FILE = "credentials.json"
+FOLDER_NAME = "Vivobook"
 
 
 def create_zip(source_dir, dest_dir, file_name):
@@ -38,23 +39,22 @@ def authenticate_drive():
 
 def upload_file(gauth, file_path, file_name):
     drive = GoogleDrive(gauth)
-    folder_name = "Vivobook"
-    query = f"title='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+    query = f"title='{FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
     folder_list = drive.ListFile({'q': query}).GetList()
     if folder_list:
         folder_id = folder_list[0]['id']
     else:
-        folder_metadata = {"title": folder_name, "mimeType": "application/vnd.google-apps.folder"}
+        folder_metadata = {"title": FOLDER_NAME, "mimeType": "application/vnd.google-apps.folder"}
         folder = drive.CreateFile(folder_metadata)
         folder.Upload()
         folder_id = folder['id']
-        logging.info(f"Created folder: {folder_name}")
+        logging.info(f"Created folder: {FOLDER_NAME}")
 
     file_metadata = {"title": file_name, "parents": [{"kind": "drive#fileLink", "id": folder_id}]}
     media = drive.CreateFile(file_metadata)
     media.SetContentFile(file_path)
     media.Upload()
-    logging.info(f"Uploaded {file_name} to Google Drive folder: {folder_name}")
+    logging.info(f"Uploaded {file_name} to Google Drive folder: {FOLDER_NAME}")
 
 
 def backup_and_upload():
@@ -64,8 +64,13 @@ def backup_and_upload():
     if not archive_path:
         return
 
-    gauth = authenticate_drive()
-    upload_file(gauth, archive_path, file_name)
+    try:
+        gauth = authenticate_drive()
+        upload_file(gauth, archive_path, file_name)
+    except Exception as e:
+        logging.error(f"Failed to upload {file_name} to Google Drive: {str(e)}")
+    finally:
+        os.remove(archive_path)
 
 
 if __name__ == "__main__":
