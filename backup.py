@@ -1,7 +1,3 @@
-"""
-Google Drive Backup
-"""
-
 import os
 import shutil
 import logging
@@ -20,7 +16,6 @@ ARCHIVE_DIR = os.path.join(
 CREDENTIALS_FILE = "credentials.json"
 FOLDER_NAME = "Vivobook"
 
-# Set up colorized logging
 handler = colorlog.StreamHandler()
 handler.setFormatter(
     colorlog.ColoredFormatter(
@@ -41,17 +36,6 @@ logger.setLevel(logging.INFO)
 
 
 def create_zip(source_dir, dest_dir, file_name):
-    """
-    Creates a zip file containing the contents of the specified source directory.
-
-    Args:
-        source_dir (str): The path to the directory to zip.
-        dest_dir (str): The path to the directory where the zip file will be saved.
-        file_name (str): The name to give the zip file.
-
-    Returns:
-        None
-    """
     logger.info(
         "Creating ZIP file from %s to %s with name %s", source_dir, dest_dir, file_name
     )
@@ -72,11 +56,6 @@ def create_zip(source_dir, dest_dir, file_name):
 
 
 def authenticate_drive():
-    """Authenticate the Google Drive API client with OAuth2 credentials.
-
-    Returns:
-        An authenticated Google Drive API client.
-    """
     logger.info("Authenticating Google Drive API...")
     gauth = GoogleAuth()
     gauth.LoadCredentialsFile(CREDENTIALS_FILE)
@@ -92,17 +71,6 @@ def authenticate_drive():
 
 
 def upload_file(gauth, file_path, file_name):
-    """
-    Uploads a file to Google Drive.
-
-    Args:
-        gauth (GoogleAuth): An authorized GoogleAuth instance.
-        file_path (str): The local path to the file to upload.
-        file_name (str): The name to use for the uploaded file.
-
-    Returns:
-        None
-    """
     logger.info("Uploading file %s to Google Drive...", file_name)
     drive = GoogleDrive(gauth)
     query = f"title='{FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
@@ -130,9 +98,6 @@ def upload_file(gauth, file_path, file_name):
 
 
 def backup_and_upload():
-    """
-    Backup the specified file and upload it to Google Drive.
-    """
     now = datetime.now()
     file_name = f"backup_{now.strftime('%d-%m-%Y_%H-%M-%S')}.zip"
     archive_path = create_zip(BACKUP_DIR, ARCHIVE_DIR, file_name)
