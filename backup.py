@@ -10,9 +10,7 @@ from pydrive.drive import GoogleDrive
 
 
 BACKUP_DIR = os.path.join(os.path.expandvars("%userprofile%"), "Desktop", "backup")
-ARCHIVE_DIR = os.path.join(
-    os.path.expandvars("%userprofile%"), "Desktop", "backup_archive"
-)
+ARCHIVE_DIR = os.getcwd()
 CREDENTIALS_FILE = "credentials.json"
 FOLDER_NAME = "Vivobook"
 
@@ -114,8 +112,7 @@ def backup_and_upload():
         logging.error("Failed to upload %s to Google Drive: %s", file_name, str(error))
         return
     finally:
-        shutil.rmtree(ARCHIVE_DIR)
-        logging.info("Removed archive directory: %s", ARCHIVE_DIR)
+        logging.info(":------------------------: %s", ARCHIVE_DIR)
 
 
 if __name__ == "__main__":
