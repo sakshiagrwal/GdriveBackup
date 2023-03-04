@@ -17,8 +17,8 @@ This is a Python script for backing up a directory and uploading it to Google Dr
 3. Edit the `backup.py` file to configure the backup settings:
 
 - Change the `BACKUP_DIR` variable to the absolute path of the directory you want to back up.
-- Change the `BACKUP_NAME` variable to the name you want to give to the backup ZIP file.
-- Change the `DRIVE_FOLDER_ID` variable to the ID of the Google Drive folder where you want to upload the backup. (You can find the folder ID in the URL of the folder.)
+- Change the `ARCHIVE_DIR` variable to the absolute path of the directory where you want to save the ZIP file.
+- Change the `FOLDER_NAME` variable to the Google Drive folder where you want to upload the backup.
 
 4. Execute the `backup.py` script:
 
@@ -28,7 +28,7 @@ This is a Python script for backing up a directory and uploading it to Google Dr
 
 ## Info
 
-- The backup ZIP file is uploaded to the Google Drive folder specified by `DRIVE_FOLDER_ID`.
-- The local backup is stored in the `archive` folder.
+- The backup ZIP file is uploaded to the Google Drive folder specified by `FOLDER_NAME`.
+- The local backup is stored in the `backup_archive` folder.
 - By default, the `backup` folder is set as the backup directory.
 - [Learn about the entire process from start to end in this blog](https://python.plainenglish.io/automate-google-drive-backup-using-python-105f57e2151)
