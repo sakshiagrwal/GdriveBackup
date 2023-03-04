@@ -43,7 +43,6 @@ def create_zip(source_dir, dest_dir, file_name):
     Returns:
         None
     """
-    logger.info(
     logger.info(f"Creating ZIP file from {source_dir} to {dest_dir} with name {file_name}")
     if not os.path.exists(source_dir):
         logger.error(f"Failed to create ZIP file: {source_dir} not found")
